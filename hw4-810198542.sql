@@ -3,6 +3,10 @@ SQL Client : MySQL Workbench 8.0 CE
 ALL Tables are store in a schematic named 'newschema' and this name is used to access tables inside it !
 */
 
+
+/*select questions*/
+
+#1
 /*select.q1*/
 SELECT p.product_name, b.brand_name, c.category_name, p.price
 FROM newschema.products p, newschema.categories c, newschema.brands b
@@ -10,6 +14,7 @@ WHERE p.brand_id = b.brand_id AND c.category_id = p.category_id
 ORDER BY p.price DESC
 LIMIT 11;
 
+#2
 /* select.q2*/
 SELECT DISTINCT p1.product_name, b.brand_name, c.category_name, p1.price 
 FROM newschema.products p1, newschema.brands b, newschema.categories c
@@ -22,7 +27,7 @@ WHERE 11 >= (
 		AND p1.brand_id = b.brand_id
 ORDER BY p1.price DESC;
 
-
+#3
 /*select.q3*/
 /*assuming the 'price' field in order_items is for each product and discount has not affected it so final price would be as -> (price*quantity*(1-discount)) */
 SELECT s.store_name, SUM(oi.price*oi.quantity*(1-oi.discount)) AS 'income'
@@ -30,6 +35,7 @@ FROM newschema.stores s, newschema.orders o, newschema.order_items oi
 WHERE s.store_id = o.store_id AND oi.order_id = o.order_id AND o.order_status = 4
 GROUP BY s.store_id;
 
+#4
 /*select.q4*/
 /*same assumptions as q3*/
 SELECT b.brand_name, SUM(oi.price*oi.quantity*(1-oi.discount)) AS 'income'
@@ -37,13 +43,38 @@ FROM newschema.products p, newschema.order_items oi, newschema.brands b, newsche
 WHERE p.brand_id = b.brand_id AND oi.product_id = p.product_id AND o.order_id = oi.order_id AND o.order_status = 4 AND YEAR(o.order_date) = '2017'
 GROUP BY b.brand_id;
 
+#5
 /*select.q5*/
 SELECT s.store_id, s.store_name, COUNT(stf.staff_id) AS 'total staff'
 FROM newschema.stores s
 LEFT JOIN newschema.staffs stf ON s.store_id = stf.store_id
 GROUP BY s.store_id;
 
+#6
 /*select.q6*/
+
+SELECT p.product_name, finalproduct.maxamount
+FROM (SELECT product1.product_id, product3.maxamount 
+							FROM (
+									SELECT st1.product_id, SUM(st1.quantity) AS amount1
+									FROM newschema.stocks st1
+									GROUP BY st1.product_id
+								 ) product1 ,   
+                                    
+								 (
+									SELECT MAX(product2.amount2) AS maxamount
+									FROM (
+											SELECT st2.product_id, SUM(st2.quantity) AS amount2
+											FROM newschema.stocks st2
+											GROUP BY st2.product_id
+										) product2 
+								  ) product3
+                                            
+							WHERE product1.amount1 = product3.maxamount
+                            ) finalProduct,
+                            newschema.products p
+WHERE p.product_id = (finalProduct.product_id);
+
 
 -- SELECT p.product_id, SUM(st.quantity) AS sum 
 -- FROM newschema.stocks st, newschema.products p, newschema.stores s 
@@ -52,16 +83,7 @@ GROUP BY s.store_id;
 -- ORDER BY sum DESC
 -- LIMIT 1;
 
--- the following query returns the max product number in stock i failed to get product name
-SELECT  MAX(x.sum)
-FROM	(
-			SELECT p.product_id, SUM(st.quantity) AS sum 
-			FROM newschema.stocks st, newschema.products p, newschema.stores s 
-			WHERE st.store_id = s.store_id AND st.product_id = p.product_id
-			GROUP BY p.product_id
-		) x;
-
-
+#7
 /*select.q7*/
 SELECT c2.first_name, c2.last_name
 FROM 
@@ -73,7 +95,9 @@ FROM
 	newschema.customers c2
 WHERE c2.customer_id != x.customer_id AND LEFT(c2.first_name,1) = "F"
 GROUP BY c2.customer_id;
- 
+
+
+#8 
 /*select.q8*/
 /*assuming an unselled item is one that is not in any order (and order item) regardless of the order status*/
 SELECT p1.*
@@ -85,6 +109,8 @@ WHERE p1.product_id NOT IN
 		WHERE o.order_id = oi.order_id AND p2.product_id = oi.product_id
     );   
 
+
+#9
 /*select.q9*/
 SELECT c.customer_id, COUNT(o.order_id) AS 'total orders'
 FROM newschema.customers c, newschema.orders o
@@ -92,16 +118,22 @@ WHERE o.customer_id = c.customer_id
 GROUP BY c.customer_id
 HAVING COUNT(o.order_id) >= 2;
 
+
+#10
 /*select.q10*/
 /*same assumptions as q3 for calculating income*/
 /*similar to what we assumed in q3 we assume that products with 0 income do not have to be shown*/
 SELECT p.product_name, SUM(oi.price*oi.quantity*(1-oi.discount)) AS 'income'
 FROM newschema.order_items oi, newschema.products p, newschema.orders o
-WHERE oi.order_id = o.order_id AND p.product_id = oi.product_id
+WHERE oi.order_id = o.order_id AND p.product_id = oi.product_id AND o.order_status = 4
 GROUP BY p.product_id -- this one can also be grouped by product_name
 ORDER BY income DESC 
 LIMIT 10;
 
+
+/*view questions*/
+
+#1
 /*view.q1*/
 /*assuming we only show this for users that have ordered something (regardless of order status)*/
 CREATE VIEW newschema.view_1 AS
@@ -113,6 +145,8 @@ GROUP BY c.customer_id;
 SELECT * FROM newschema.view_1
 ORDER BY view_1.purchase_amount_avg DESC;
 
+
+#2
 /*view.q2*/
 /*assuming '100' in question means number of sells for items*/
 CREATE VIEW newschema.view_2 AS
@@ -125,6 +159,8 @@ HAVING SUM(oi.quantity) > 100;
 SELECT * FROM newschema.view_2
 ORDER BY view_2.total_sold DESC;
 
+
+#3
 /*view.q3*/
 /*using 'NOT IN' instead of 'EXCEPT' since mysql does not support 'EXCEPT' */
 CREATE VIEW newschema.view_3 AS
@@ -146,6 +182,9 @@ SELECT * FROM newschema.view_3
 GROUP BY view_3.store_id;
 
 
+/*trigger questions*/
+
+#1
 /*trigger.q1*/
 delimiter //
 CREATE TRIGGER newschema.insert_trigger
@@ -168,6 +207,7 @@ delimiter ;
 INSERT INTO newschema.order_items VALUES(1, 1, 20, 30, 599.99, 0.2) -- store 1 has total 26 from product 20
 
 
+#2
 /*trigger.q2*/
 -- assuming we wont set order to 2 again if its already set 
 delimiter //
@@ -188,6 +228,8 @@ SELECT o.*
 FROM newschema.orders o
 WHERE o.order_id = 1 -- shipped date changed to 2023-04-03
 
+
+#3
 /*trigger.q3*/
 delimiter //
 CREATE TRIGGER newschema.delete_trigger BEFORE DELETE ON newschema.customers
